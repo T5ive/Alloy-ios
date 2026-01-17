@@ -51,7 +51,10 @@ Logs are sent to the Apple Unified Logging System. You can view them using **Con
 
 ## Contributing
 
-Contributions are welcome!
+Contributions are welcome! If you find any issues or have suggestions, please [open an issue](https://github.com/Batchhh/Rust-ios-tweak/issues).
+
+For collaboration, feel free to submit [pull requests](https://github.com/Batchhh/Rust-ios-tweak/pulls).
+
 Follow Rust conventions (`cargo fmt`, `cargo clippy`) and document your changes.
 
 ### Commit Guidelines
@@ -66,4 +69,4 @@ Educational purposes only. Modifying games may violate Terms of Service. Use at 
 
 ## License
 
-MIT License - See LICENSE file for details.
+[MIT License](https://github.com/Batchhh/Rust-ios-tweak/blob/main/LICENSE) - See LICENSE file for details.
