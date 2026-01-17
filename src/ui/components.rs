@@ -69,9 +69,8 @@ pub fn create_toggle_button(frame: CGRect, mtm: MainThreadMarker) -> Retained<UI
     let button = UIButton::buttonWithType(objc2_ui_kit::UIButtonType::Custom, mtm);
     button.setFrame(frame);
     
-    // Glassmorphism background
     let blur_effect = unsafe {
-        let effect: Retained<UIBlurEffect> = msg_send![UIBlurEffect::class(), effectWithStyle: 2i64]; // Dark style
+        let effect: Retained<UIBlurEffect> = msg_send![UIBlurEffect::class(), effectWithStyle: 2i64];
         effect
     };
     let effect_view = UIVisualEffectView::new(&blur_effect, mtm);
@@ -80,7 +79,6 @@ pub fn create_toggle_button(frame: CGRect, mtm: MainThreadMarker) -> Retained<UI
     effect_view.layer().setCornerRadius(frame.size.width / 2.0);
     effect_view.setClipsToBounds(true);
     
-    // Add blur effect
     button.addSubview(&effect_view);
     unsafe { button.sendSubviewToBack(&effect_view); }
 
@@ -89,7 +87,6 @@ pub fn create_toggle_button(frame: CGRect, mtm: MainThreadMarker) -> Retained<UI
     let layer = button.layer();
     layer.setCornerRadius(frame.size.width / 2.0);
     
-    // Add a subtle gradient-like border
     layer.setBorderWidth(1.5);
     unsafe {
         layer.setBorderColor(Some(&Theme::toggle_button_border().CGColor()));
@@ -97,18 +94,14 @@ pub fn create_toggle_button(frame: CGRect, mtm: MainThreadMarker) -> Retained<UI
         layer.setShadowColor(Some(&shadow_color));
     }
     
-    // Enhanced shadow
     layer.setShadowOffset(CGSize::new(0.0, 4.0));
     layer.setShadowRadius(10.0);
     layer.setShadowOpacity(0.5);
     
     unsafe {
-        // Use a nicer icon or text
-        button.setTitle_forState(Some(&NSString::from_str("M")), UIControlState::Normal); // M for Menu? Or Keep ≡ but styled better
-        // Let's stick to ≡ but with better font
+        button.setTitle_forState(Some(&NSString::from_str("M")), UIControlState::Normal);
         button.setTitle_forState(Some(&NSString::from_str("≡")), UIControlState::Normal);
         button.setTitleColor_forState(Some(&Theme::text()), UIControlState::Normal);
-        // Make it larger and bold
         if let Some(label) = button.titleLabel() { 
             let font = UIFont::boldSystemFontOfSize(32.0);
             label.setFont(Some(&font)); 
