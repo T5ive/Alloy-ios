@@ -19,13 +19,12 @@ pub enum RwError {
     #[error("Null pointer")]
     NullPointer,
     #[error("Image not found: {0}")]
-    ImageBaseNotFound(#[from] super::image::ImageError),
+    ImageBaseNotFound(#[from] crate::memory::info::image::ImageError),
     #[error("Protection failed: {0}")]
     ProtectionFailed(i32),
     #[error("Thread error: {0}")]
-    ThreadError(#[from] super::thread::ThreadError),
+    ThreadError(#[from] crate::memory::platform::thread::ThreadError),
 }
-
 
 pub unsafe fn read<T: Copy>(address: usize) -> Result<T, RwError> {
     if address == 0 {
@@ -34,12 +33,10 @@ pub unsafe fn read<T: Copy>(address: usize) -> Result<T, RwError> {
     Ok(ptr::read(address as *const T))
 }
 
-
 pub unsafe fn read_at_rva<T: Copy>(rva: usize) -> Result<T, RwError> {
-    let base = super::image::get_image_base(crate::config::TARGET_IMAGE_NAME)?;
+    let base = crate::memory::info::image::get_image_base(crate::config::TARGET_IMAGE_NAME)?;
     read::<T>(base + rva)
 }
-
 
 pub unsafe fn read_pointer_chain(base: usize, offsets: &[usize]) -> Result<usize, RwError> {
     if base == 0 {
@@ -64,7 +61,6 @@ pub unsafe fn read_pointer_chain(base: usize, offsets: &[usize]) -> Result<usize
     Ok(current)
 }
 
-
 pub unsafe fn write<T: Copy>(address: usize, value: T) -> Result<(), RwError> {
     if address == 0 {
         return Err(RwError::NullPointer);
@@ -81,22 +77,21 @@ pub unsafe fn write_code<T: Copy>(address: usize, value: T) -> Result<(), RwErro
     }
     let size = std::mem::size_of::<T>();
     let data = std::slice::from_raw_parts(&value as *const T as *const u8, size);
-    write_bytes_internal(address, data)
+    write_bytes(address, data)
 }
 
-
 pub unsafe fn write_at_rva<T: Copy>(rva: usize, value: T) -> Result<(), RwError> {
-    let base = super::image::get_image_base(crate::config::TARGET_IMAGE_NAME)?;
+    let base = crate::memory::info::image::get_image_base(crate::config::TARGET_IMAGE_NAME)?;
     write::<T>(base + rva, value)
 }
 
-unsafe fn write_bytes_internal(address: usize, data: &[u8]) -> Result<(), RwError> {
+pub unsafe fn write_bytes(address: usize, data: &[u8]) -> Result<(), RwError> {
     let page_size = libc::sysconf(libc::_SC_PAGESIZE) as usize;
     let page_mask = !(page_size - 1);
     let page_start = address & page_mask;
     let page_len = ((address + data.len() + page_size - 1) & page_mask) - page_start;
 
-    let suspended = super::thread::suspend_other_threads()?;
+    let suspended = crate::memory::platform::thread::suspend_other_threads()?;
     let task = mach_task_self();
 
     let kr = mach_vm_protect(
@@ -109,7 +104,7 @@ unsafe fn write_bytes_internal(address: usize, data: &[u8]) -> Result<(), RwErro
 
     if kr != KERN_SUCCESS {
         logger::error("vm_protect RW failed");
-        super::thread::resume_threads(&suspended);
+        crate::memory::platform::thread::resume_threads(&suspended);
         return Err(RwError::ProtectionFailed(kr));
     }
 
@@ -126,6 +121,6 @@ unsafe fn write_bytes_internal(address: usize, data: &[u8]) -> Result<(), RwErro
     super::patch::invalidate_icache(address as *mut c_void, data.len());
     logger::info(&format!("Wrote {} bytes at {:#x}", data.len(), address));
 
-    super::thread::resume_threads(&suspended);
+    crate::memory::platform::thread::resume_threads(&suspended);
     Ok(())
 }

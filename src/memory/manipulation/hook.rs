@@ -36,7 +36,7 @@ pub enum HookError {
     #[error("Hook exists: {0:#x}")]
     AlreadyExists(usize),
     #[error("Image not found: {0}")]
-    ImageBaseNotFound(#[from] super::image::ImageError),
+    ImageBaseNotFound(#[from] crate::memory::info::image::ImageError),
     #[error("Alloc failed")]
     AllocationFailed,
     #[error("Protection failed: {0}")]
@@ -46,15 +46,13 @@ pub enum HookError {
     #[error("Relocation failed")]
     RelocationFailed,
     #[error("Thread error: {0}")]
-    ThreadError(#[from] super::thread::ThreadError),
+    ThreadError(#[from] crate::memory::platform::thread::ThreadError),
 }
-
 
 pub struct Hook {
     target: usize,
     trampoline: usize,
 }
-
 
 impl Hook {
     #[inline]
@@ -110,7 +108,7 @@ fn decode_b_target(instr: u32, pc: usize) -> usize {
 
 fn encode_b_instruction(from: usize, to: usize) -> Option<u32> {
     let offset = (to as isize) - (from as isize);
-    if offset < -B_RANGE || offset >= B_RANGE {
+    if !(-B_RANGE..B_RANGE).contains(&offset) {
         return None;
     }
     Some(0x14000000 | (((offset >> 2) as u32) & 0x03FFFFFF))
@@ -247,7 +245,6 @@ unsafe fn install_regular_hook(target: usize, replacement: usize) -> Result<usiz
     logger::info(&format!("Hook: {:#x} → {:#x}", target, replacement));
     Ok(trampoline_base)
 }
-
 
 pub unsafe fn remove(rva: usize) -> bool {
     match image::get_image_base(config::TARGET_IMAGE_NAME) {

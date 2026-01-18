@@ -15,24 +15,22 @@ pub enum PatchError {
     #[error("Invalid hex: {0}")]
     InvalidHex(#[from] hex::FromHexError),
     #[error("Image not found: {0}")]
-    ImageBaseNotFound(#[from] super::image::ImageError),
+    ImageBaseNotFound(#[from] crate::memory::info::image::ImageError),
     #[error("Protection failed: {0}")]
     ProtectionFailed(i32),
     #[error("Thread error: {0}")]
-    ThreadError(#[from] super::thread::ThreadError),
+    ThreadError(#[from] crate::memory::platform::thread::ThreadError),
     #[error("Empty instructions")]
     EmptyInstructions,
 }
 
 pub struct Patch {
-    
     address: usize,
-    
+
     original_bytes: Vec<u8>,
 }
 
 impl Patch {
-    
     pub fn revert(&self) {
         unsafe {
             if let Err(e) = write_bytes(self.address, &self.original_bytes) {
@@ -42,11 +40,10 @@ impl Patch {
     }
 }
 
-
 pub fn apply(rva: usize, hex_str: &str) -> Result<Patch, PatchError> {
     let clean: String = hex_str.chars().filter(|c| !c.is_whitespace()).collect();
     let bytes = hex::decode(&clean)?;
-    let base = super::image::get_image_base(crate::config::TARGET_IMAGE_NAME)?;
+    let base = crate::memory::info::image::get_image_base(crate::config::TARGET_IMAGE_NAME)?;
     let address = base + rva;
     let original_bytes = unsafe { read_bytes(address, bytes.len()) };
     unsafe {
@@ -57,7 +54,6 @@ pub fn apply(rva: usize, hex_str: &str) -> Result<Patch, PatchError> {
         original_bytes,
     })
 }
-
 
 pub fn apply_asm<F>(rva: usize, build: F) -> Result<Patch, PatchError>
 where
@@ -73,7 +69,7 @@ where
         .iter()
         .flat_map(|instr| instr.0.to_le_bytes())
         .collect();
-    let base = super::image::get_image_base(crate::config::TARGET_IMAGE_NAME)?;
+    let base = crate::memory::info::image::get_image_base(crate::config::TARGET_IMAGE_NAME)?;
     let address = base + rva;
     let original_bytes = unsafe { read_bytes(address, bytes.len()) };
     unsafe {
@@ -92,10 +88,10 @@ unsafe fn read_bytes(address: usize, len: usize) -> Vec<u8> {
 }
 
 unsafe fn write_bytes(address: usize, data: &[u8]) -> Result<(), PatchError> {
-    for (i, &byte) in data.iter().enumerate() {
-        super::rw::write(address + i, byte).map_err(|_| PatchError::ProtectionFailed(0))?;
-    }
-    Ok(())
+    super::rw::write_bytes(address, data).map_err(|e| match e {
+        super::rw::RwError::ProtectionFailed(kr) => PatchError::ProtectionFailed(kr),
+        _ => PatchError::ProtectionFailed(0),
+    })
 }
 
 #[inline]

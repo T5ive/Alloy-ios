@@ -1,145 +1,153 @@
-//! Main entry point
-
 mod config;
 mod memory;
 mod ui;
 mod utils;
-
-use std::{ffi::c_void};
+use memory::{breakpoint::Breakpoint, hook::Hook, patch::Patch};
+use parking_lot::Mutex;
+use std::ffi::c_void;
 use utils::logger;
 
-use dispatch::Queue;
-
-fn _example_patch() -> bool {
-    // Example 1: Hex-based patch with revert
-    // if let Ok(patch) = memory::patch::apply(0x292d94c, "C0035FD6") {
-    //     logger::info("Applied hex patch!");
-    //     patch.revert();
-    //     logger::info("Hex patch reverted");
-    //     return true;
-    // }
-
-    // Example 2: ASM-based patch with revert
-    if let Ok(_patch) = memory::patch::apply_asm(0x292d94c, |b| b.ret()) {
-        logger::info("Applied ASM patch!");
-        // patch.revert();
-        // logger::info("ASM patch reverted");
-        return true;
-    }
-
-    false
-}
-
-static HOOK: std::sync::OnceLock<memory::hook::Hook> = std::sync::OnceLock::new();
-
-fn _example_hook() -> bool {
-    type UpdateFn = fn(*mut c_void, f32);
-
-    fn update_hook(this: *mut c_void, delta_time: f32) {
-        if let Some(hook) = HOOK.get() {
-            let original: UpdateFn = unsafe { hook.trampoline_as() };
-            
-            // Read and log values at offsets 0xa8 and 0xb0
-            unsafe {
-                let coins_addr = this as usize + 0xa8;
-                
-                if let Ok(coins_value) = memory::rw::read::<f64>(coins_addr) {
-                    logger::info(&format!("this+0xa8 (double): {}", coins_value));
-                    let _ = memory::rw::write::<f64>(coins_addr, 99999.0);
-                    logger::info("Modified this+0xa8 to 99999.0");
-                }
-            }
-            
-            original(this, delta_time);
-        }
-    }
-
-    unsafe {
-        if let Ok(hook) = memory::hook::install(0x292d94c, update_hook as usize) {
-            logger::info("Hook installed!");
-            let _ = HOOK.set(hook);
-            // To remove later: HOOK.get().unwrap().remove();
-            return true;
-        }
-    }
-
-    false
-}
+static PATCH: Mutex<Option<Patch>> = Mutex::new(None);
+static HOOK: Mutex<Option<Hook>> = Mutex::new(None);
+static BRK_HOOK: Mutex<Option<Breakpoint>> = Mutex::new(None);
 
 fn init_ui() {
-    use objc2_foundation::MainThreadMarker;
-    
-    logger::info("Initializing native iOS UI overlay..");
-    
-    // === HOME PAGE (Page 0) - Navigation ===
-    // Add a title label
-    ui::add_label(0, "CATEGORIES", 12.0, true, Some("#888888"));
-    
-    // Add navigation buttons to reach different pages
-    ui::add_button_with_nav(0, "Cheats", 1, None::<fn()>);
-    ui::add_button_with_nav(0, "Settings", 2, None::<fn()>);
-    
-    // === REGISTER MENU ITEMS ===
-    // Page 1: Cheats
-    ui::add_toggle(1, "God Mode", "god_mode", false, Some(|enabled| {
-        logger::info(&format!("God Mode: {}", enabled));
-    }));
-    
-    ui::add_toggle(1, "Infinite Ammo", "infinite_ammo", false, Some(|enabled| {
-        logger::info(&format!("Infinite Ammo: {}", enabled));
-    }));
-    
-    ui::add_toggle(1, "No Clip", "no_clip", false, Some(|enabled| {
-        logger::info(&format!("No Clip: {}", enabled));
-    }));
-    
-    ui::add_slider(1, "Speed Multiplier", "speed", 0.1, 5.0, 1.0, Some(|value| {
-        logger::info(&format!("Speed: {}x", value));
-    }));
-    
-    // Page 2: Settings
-    ui::add_input(2, "Username", "username", "Enter username", "", Some(|text| {
-        logger::info(&format!("Username changed: {}", text));
-    }));
-    
-    // Action button example (button with arrow and callback)
-    ui::add_action_button(2, "Clear Data", Some(|| {
-        logger::info("Clear Data button tapped!");
-        // Add your action here
-    }));
-    
-    // === EXAMPLE: Create a custom page ===
-    // let custom_page = ui::add_page("My Features");
-    // ui::add_toggle(custom_page, "Custom Feature", "custom_feat", false, Some(|enabled| {
-    //     logger::info(&format!("Custom Feature: {}", enabled));
-    // }));
-    // ui::add_slider(custom_page, "Custom Value", "custom_val", 0.0, 100.0, 50.0, None::<fn(f32)>);
-    
-    // Get main thread marker
-    if let Some(mtm) = MainThreadMarker::new() {
-        ui::native::init_overlay(mtm);
-        logger::info("Mod menu overlay created");
-    } else {
-        logger::error("Failed to get MainThreadMarker - not on main thread!");
-    }
+    let mtm = objc2_foundation::MainThreadMarker::new().unwrap();
+    // Page 0: Testing label
+    ui::add_label(0, "Testing", 12.0, true, Some("#888888"));
+
+    // Page 0: Patch test toggle
+    ui::add_toggle(
+        0,
+        "Patch test",
+        "patch",
+        false,
+        Some(|on| {
+            let mut lock = PATCH.lock();
+            if on {
+                // memory::patch::apply(0x292d94c, "COO35FD6");
+                if let Ok(p) = memory::patch::apply_asm(0x292d94c, |b| b.ret()) {
+                    *lock = Some(p);
+                    logger::info("Patch test ON");
+                }
+            } else if let Some(p) = lock.take() {
+                p.revert();
+                logger::info("Patch test OFF");
+            }
+        }),
+    );
+
+    // Page 0: Hook test toggle
+    ui::add_toggle(
+        0,
+        "Hook test",
+        "hook",
+        false,
+        Some(|on| {
+            let mut lock = HOOK.lock();
+            if on {
+                fn hook_fn(this: *mut c_void, _dt: f32) {
+                    unsafe {
+                        let _ = memory::rw::write(this as usize + 0xa8, 999.0);
+                    }
+                    if let Some(h) = HOOK.lock().as_ref() {
+                        let orig: fn(*mut c_void, f32) = unsafe { h.trampoline_as() };
+                        orig(this, _dt);
+                    }
+                }
+                if let Ok(h) = unsafe { memory::hook::install(0x292d94c, hook_fn as usize) } {
+                    *lock = Some(h);
+                    logger::info("Hook test ON");
+                }
+            } else if let Some(h) = lock.take() {
+                h.remove();
+                logger::info("Hook test OFF");
+            }
+        }),
+    );
+
+    // Page 0: Scan test action button
+    ui::add_action_button(
+        0,
+        "Scan test",
+        Some(|| {
+            // if let Ok(results) = memory::scan::scan_image(config::TARGET_IMAGE_NAME, "1F 20 03 D5") {
+            //     logger::info(&format!("Found {} NOP instructions", results.len()));
+            // }
+            if let Ok(results) =
+                memory::scan::scan_image_asm(config::TARGET_IMAGE_NAME, |b| b.ret())
+            {
+                logger::info(&format!("Found {} ret instructions", results.len()));
+            }
+        }),
+    );
+
+    /* Example Usage for other UI features:
+    ui::add_label(0, "SETTINGS", 12.0, true, Some("#888888"));
+    ui::add_button_with_nav(0, "More Settings", 1, None::<fn()>);
+    ui::add_slider(page_id, name, key, min, max, default, callback);
+    ui::add_input(page_id, name, key, placeholder, default, callback);
+    */
+
+    // Page 0: Breakpoint hook test toggle
+
+    // void onDamage_rpl(void* self, void* _battle_damage) {
+    ui::add_toggle(
+        0,
+        "Brk Hook test",
+        "brk_hook",
+        false,
+        Some(|on| {
+            let mut lock = BRK_HOOK.lock();
+            if on {
+                // Breakpoint hook - no code modification, uses hardware debug registers
+                // Note: replacement function receives control directly (no trampoline)
+                extern "C" fn brk_replacement(this: *mut c_void, dt: f32) {
+                    logger::info(&format!("Breakpoint hook triggered! this: {:?}", this));
+
+                    // Call original function
+                    // 1. Suspend breakpoints for this thread (to avoid infinite recursion)
+                    // 2. Call original function at target address
+                    // 3. Resume breakpoints for this thread
+                    unsafe {
+                        let _ = memory::rw::write(this as usize + 0xa8, 999.0);
+                    }
+
+                    if let Some(h) = BRK_HOOK.lock().as_ref() {
+                        let target = h.target();
+                        unsafe {
+                            let _ = memory::breakpoint::suspend_self();
+                            let orig: extern "C" fn(*mut c_void, f32) = std::mem::transmute(target);
+                            orig(this, dt);
+                            let _ = memory::breakpoint::resume_self();
+                        }
+                    }
+                }
+                match unsafe { memory::breakpoint::install(0x292d94c, brk_replacement as usize) } {
+                    Ok(h) => {
+                        *lock = Some(h);
+                        logger::info("Brk Hook ON");
+                    }
+                    Err(e) => {
+                        logger::error(&format!("Brk Hook install failed: {:?}", e));
+                    }
+                }
+            } else if let Some(h) = lock.take() {
+                let _ = h.remove();
+                logger::info("Brk Hook OFF");
+            }
+        }),
+    );
+
+    ui::native::init_overlay(mtm);
 }
 
 #[ctor::ctor]
 fn init() {
-    logger::info("rust_igmm initializing...");
-    
-    Queue::main().exec_async(|| {
-        // Initialize UI menu
+    dispatch::Queue::main().exec_async(|| {
         init_ui();
-        
-        // Run example hook
-        if _example_hook() {
-            logger::info("Example hook executed");
+        if let Ok(a) = memory::symbol::resolve_symbol("il2cpp_init") {
+            logger::info(&format!("il2cpp_init: {:#x}", a));
         }
-        
-
-        // if _example_patch() {
-        //     logger::info("Example patch executed");
-        // }
     });
 }

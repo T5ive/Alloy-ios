@@ -38,10 +38,8 @@ pub unsafe fn suspend_other_threads() -> Result<Vec<mach_port_t>, ThreadError> {
     let threads = std::slice::from_raw_parts(thread_list, thread_count as usize);
 
     for &thread in threads {
-        if thread != this_thread {
-            if thread_suspend(thread) == KERN_SUCCESS {
-                suspended_threads.push(thread);
-            }
+        if thread != this_thread && thread_suspend(thread) == KERN_SUCCESS {
+            suspended_threads.push(thread);
         }
     }
 

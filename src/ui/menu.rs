@@ -1,17 +1,21 @@
+//! Menu
+
+use super::components::{
+    create_button_item, create_header, create_label, create_slider_item, create_text_input_item,
+    create_toggle_item, UIBlurEffect, UIVisualEffectView,
+};
+use super::theme::Theme;
 use objc2::rc::{Allocated, Retained};
 use objc2::{define_class, msg_send, sel, ClassType, MainThreadOnly};
 use objc2_core_foundation::{CGPoint, CGRect, CGSize};
 use objc2_foundation::{MainThreadMarker, NSObject, NSString};
-use objc2_ui_kit::{UIButton, UIControlEvents, UIControlState, UIGestureRecognizerState, UIPanGestureRecognizer, UISlider, UITextField, UIView, UITapGestureRecognizer};
-use super::components::{
-    create_button_item, create_label, create_toggle_item, create_slider_item, 
-    create_text_input_item, create_header, UIBlurEffect, UIVisualEffectView
+use objc2_ui_kit::{
+    UIButton, UIControlEvents, UIControlState, UIGestureRecognizerState, UIPanGestureRecognizer,
+    UISlider, UITapGestureRecognizer, UITextField, UIView,
 };
-use super::theme::Theme;
-use crate::utils::logger;
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use once_cell::sync::Lazy;
 
 type ToggleCallback = Box<dyn Fn(bool) + Send + Sync>;
 type SliderCallback = Box<dyn Fn(f32) + Send + Sync>;
@@ -20,12 +24,48 @@ type ButtonCallback = Box<dyn Fn() + Send + Sync>;
 
 #[derive(Clone)]
 pub enum MenuItem {
-    Toggle { id: i32, name: String, key: String, default: bool, callback: Option<Arc<ToggleCallback>> },
-    Slider { id: i32, name: String, key: String, min: f32, max: f32, default: f32, callback: Option<Arc<SliderCallback>> },
-    Input { id: i32, name: String, key: String, placeholder: String, default: String, callback: Option<Arc<InputCallback>> },
-    Button { id: i32, name: String, target_page: Option<i32>, callback: Option<Arc<ButtonCallback>> },
-    Label { id: i32, text: String, font_size: f32, is_bold: bool, color: Option<String> },
-    ActionButton { id: i32, name: String, callback: Option<Arc<ButtonCallback>> },
+    Toggle {
+        id: i32,
+        name: String,
+        key: String,
+        default: bool,
+        callback: Option<Arc<ToggleCallback>>,
+    },
+    Slider {
+        id: i32,
+        name: String,
+        key: String,
+        min: f32,
+        max: f32,
+        default: f32,
+        callback: Option<Arc<SliderCallback>>,
+    },
+    Input {
+        id: i32,
+        name: String,
+        key: String,
+        placeholder: String,
+        default: String,
+        callback: Option<Arc<InputCallback>>,
+    },
+    Button {
+        id: i32,
+        name: String,
+        target_page: Option<i32>,
+        callback: Option<Arc<ButtonCallback>>,
+    },
+    Label {
+        id: i32,
+        text: String,
+        font_size: f32,
+        is_bold: bool,
+        color: Option<String>,
+    },
+    ActionButton {
+        id: i32,
+        name: String,
+        callback: Option<Arc<ButtonCallback>>,
+    },
 }
 
 struct MenuRegistry {
@@ -36,7 +76,12 @@ struct MenuRegistry {
 }
 
 static REGISTRY: Lazy<Mutex<MenuRegistry>> = Lazy::new(|| {
-    Mutex::new(MenuRegistry { pages: HashMap::new(), page_titles: HashMap::new(), items_by_id: HashMap::new(), next_id: 1000 })
+    Mutex::new(MenuRegistry {
+        pages: HashMap::new(),
+        page_titles: HashMap::new(),
+        items_by_id: HashMap::new(),
+        next_id: 1000,
+    })
 });
 
 macro_rules! register_item {
@@ -46,76 +91,177 @@ macro_rules! register_item {
         reg.next_id += 1;
         let mut item = $item;
         match &mut item {
-            MenuItem::Toggle { id: item_id, .. } | MenuItem::Slider { id: item_id, .. } |
-            MenuItem::Input { id: item_id, .. } | MenuItem::Button { id: item_id, .. } |
-            MenuItem::Label { id: item_id, .. } | MenuItem::ActionButton { id: item_id, .. } => *item_id = id,
+            MenuItem::Toggle { id: item_id, .. }
+            | MenuItem::Slider { id: item_id, .. }
+            | MenuItem::Input { id: item_id, .. }
+            | MenuItem::Button { id: item_id, .. }
+            | MenuItem::Label { id: item_id, .. }
+            | MenuItem::ActionButton { id: item_id, .. } => *item_id = id,
         }
         reg.pages.entry($page_id).or_default().push(item.clone());
         reg.items_by_id.insert(id, item);
     }};
 }
 
-pub fn add_toggle(page_id: i32, name: &str, key: &str, default: bool, callback: Option<impl Fn(bool) + Send + Sync + 'static>) {
-    register_item!(page_id, MenuItem::Toggle { id: 0, name: name.into(), key: key.into(), default, callback: callback.map(|f| Arc::new(Box::new(f) as ToggleCallback)) });
+pub fn add_toggle(
+    page_id: i32,
+    name: &str,
+    key: &str,
+    default: bool,
+    callback: Option<impl Fn(bool) + Send + Sync + 'static>,
+) {
+    register_item!(
+        page_id,
+        MenuItem::Toggle {
+            id: 0,
+            name: name.into(),
+            key: key.into(),
+            default,
+            callback: callback.map(|f| Arc::new(Box::new(f) as ToggleCallback))
+        }
+    );
 }
 
-pub fn add_slider(page_id: i32, name: &str, key: &str, min: f32, max: f32, default: f32, callback: Option<impl Fn(f32) + Send + Sync + 'static>) {
-    register_item!(page_id, MenuItem::Slider { id: 0, name: name.into(), key: key.into(), min, max, default, callback: callback.map(|f| Arc::new(Box::new(f) as SliderCallback)) });
+pub fn add_slider(
+    page_id: i32,
+    name: &str,
+    key: &str,
+    min: f32,
+    max: f32,
+    default: f32,
+    callback: Option<impl Fn(f32) + Send + Sync + 'static>,
+) {
+    register_item!(
+        page_id,
+        MenuItem::Slider {
+            id: 0,
+            name: name.into(),
+            key: key.into(),
+            min,
+            max,
+            default,
+            callback: callback.map(|f| Arc::new(Box::new(f) as SliderCallback))
+        }
+    );
 }
 
-pub fn add_input(page_id: i32, name: &str, key: &str, placeholder: &str, default: &str, callback: Option<impl Fn(String) + Send + Sync + 'static>) {
-    register_item!(page_id, MenuItem::Input { id: 0, name: name.into(), key: key.into(), placeholder: placeholder.into(), default: default.into(), callback: callback.map(|f| Arc::new(Box::new(f) as InputCallback)) });
+pub fn add_input(
+    page_id: i32,
+    name: &str,
+    key: &str,
+    placeholder: &str,
+    default: &str,
+    callback: Option<impl Fn(String) + Send + Sync + 'static>,
+) {
+    register_item!(
+        page_id,
+        MenuItem::Input {
+            id: 0,
+            name: name.into(),
+            key: key.into(),
+            placeholder: placeholder.into(),
+            default: default.into(),
+            callback: callback.map(|f| Arc::new(Box::new(f) as InputCallback))
+        }
+    );
 }
 
-pub fn add_button_with_nav(page_id: i32, name: &str, target_page: i32, callback: Option<impl Fn() + Send + Sync + 'static>) {
+pub fn add_button_with_nav(
+    page_id: i32,
+    name: &str,
+    target_page: i32,
+    callback: Option<impl Fn() + Send + Sync + 'static>,
+) {
     let mut reg = REGISTRY.lock().unwrap();
     let id = 200 + target_page;
-    let item = MenuItem::Button { id, name: name.into(), target_page: Some(target_page), callback: callback.map(|f| Arc::new(Box::new(f) as ButtonCallback)) };
+    let item = MenuItem::Button {
+        id,
+        name: name.into(),
+        target_page: Some(target_page),
+        callback: callback.map(|f| Arc::new(Box::new(f) as ButtonCallback)),
+    };
     reg.pages.entry(page_id).or_default().push(item.clone());
     reg.items_by_id.insert(id, item);
 }
 
-
 pub fn add_button(page_id: i32, name: &str, callback: Option<impl Fn() + Send + Sync + 'static>) {
-    register_item!(page_id, MenuItem::Button { id: 0, name: name.into(), target_page: None, callback: callback.map(|f| Arc::new(Box::new(f) as ButtonCallback)) });
+    register_item!(
+        page_id,
+        MenuItem::Button {
+            id: 0,
+            name: name.into(),
+            target_page: None,
+            callback: callback.map(|f| Arc::new(Box::new(f) as ButtonCallback))
+        }
+    );
 }
 
 pub fn add_label(page_id: i32, text: &str, font_size: f32, is_bold: bool, color: Option<&str>) {
-    register_item!(page_id, MenuItem::Label { id: 0, text: text.into(), font_size, is_bold, color: color.map(|s| s.into()) });
+    register_item!(
+        page_id,
+        MenuItem::Label {
+            id: 0,
+            text: text.into(),
+            font_size,
+            is_bold,
+            color: color.map(|s| s.into())
+        }
+    );
 }
 
-pub fn add_action_button(page_id: i32, name: &str, callback: Option<impl Fn() + Send + Sync + 'static>) {
-    register_item!(page_id, MenuItem::ActionButton { id: 0, name: name.into(), callback: callback.map(|f| Arc::new(Box::new(f) as ButtonCallback)) });
+pub fn add_action_button(
+    page_id: i32,
+    name: &str,
+    callback: Option<impl Fn() + Send + Sync + 'static>,
+) {
+    register_item!(
+        page_id,
+        MenuItem::ActionButton {
+            id: 0,
+            name: name.into(),
+            callback: callback.map(|f| Arc::new(Box::new(f) as ButtonCallback))
+        }
+    );
 }
-
 
 pub fn add_page(name: &str) -> i32 {
     let mut reg = REGISTRY.lock().unwrap();
     let mut page_id = 10;
-    while reg.pages.contains_key(&page_id) || page_id < 10 { page_id += 1; }
+    while reg.pages.contains_key(&page_id) || page_id < 10 {
+        page_id += 1;
+    }
     reg.pages.insert(page_id, Vec::new());
     reg.page_titles.insert(page_id, name.to_string());
     let btn_id = reg.next_id;
     reg.next_id += 1;
-    let button = MenuItem::Button { id: btn_id, name: name.to_string(), target_page: Some(page_id), callback: None };
+    let button = MenuItem::Button {
+        id: btn_id,
+        name: name.to_string(),
+        target_page: Some(page_id),
+        callback: None,
+    };
     reg.pages.entry(0).or_default().push(button.clone());
     reg.items_by_id.insert(btn_id, button);
     page_id
 }
 
-
-
-
-
 fn update_toggle_ui(sender: &UIButton, selected: bool) {
     if let Some(bg) = sender.viewWithTag(2) {
-        let color = if selected { Theme::accent() } else { Theme::toggle_off() };
+        let color = if selected {
+            Theme::accent()
+        } else {
+            Theme::toggle_off()
+        };
         bg.setBackgroundColor(Some(&color));
         if let Some(knob) = bg.viewWithTag(3) {
             let mut frame = knob.frame();
             frame.origin.x = if selected { 22.0 } else { 2.0 };
             knob.setFrame(frame);
-            let knob_color = if selected { Theme::knob_on() } else { Theme::accent() };
+            let knob_color = if selected {
+                Theme::knob_on()
+            } else {
+                Theme::accent()
+            };
             knob.setBackgroundColor(Some(&knob_color));
         }
     }
@@ -164,9 +310,9 @@ impl MenuActionHandler {
                 }
             } else { drop(registry); }
             if tag == 99 { crate::ui::window::hide_menu(); }
-            else if tag >= 200 && tag < 300 { render_content((tag - 200) as i32); }
+            else if (200..300).contains(&tag) { render_content((tag - 200) as i32); }
         }
-        
+
         #[unsafe(method(handleSlider:))]
         fn handle_slider(&self, sender: &UISlider) {
              let (value, tag) = (sender.value(), sender.tag());
@@ -183,7 +329,7 @@ impl MenuActionHandler {
                  if let Some(cb) = callback { cb(value); }
              }
         }
-        
+
         #[unsafe(method(handleTextChange:))]
         fn handle_text_change(&self, sender: &UITextField) {
              let (tag, text) = (sender.tag(), sender.text().map(|t| t.to_string()).unwrap_or_default());
@@ -216,7 +362,7 @@ impl MenuActionHandler {
 
                         if center.x < half_w { center.x = half_w; }
                         if center.x > super_bounds.size.width - half_w { center.x = super_bounds.size.width - half_w; }
-                        
+
                         if center.y < half_h { center.y = half_h; }
                         if center.y > super_bounds.size.height - half_h { center.y = super_bounds.size.height - half_h; }
                     }
@@ -244,12 +390,16 @@ pub fn create_menu_view(frame: CGRect, mtm: MainThreadMarker) -> Retained<UIView
     let menu: Retained<UIView> = UIView::initWithFrame(UIView::alloc(mtm), frame);
     menu.setBackgroundColor(Some(&Theme::background()));
     let blur_effect = unsafe {
-        let effect: Retained<UIBlurEffect> = msg_send![UIBlurEffect::class(), effectWithStyle: 2i64];
+        let effect: Retained<UIBlurEffect> =
+            msg_send![UIBlurEffect::class(), effectWithStyle: 2i64];
         effect
     };
     let effect_view = UIVisualEffectView::new(&blur_effect, mtm);
     effect_view.setFrame(menu.bounds());
-    effect_view.setAutoresizingMask(objc2_ui_kit::UIViewAutoresizing::FlexibleWidth | objc2_ui_kit::UIViewAutoresizing::FlexibleHeight);
+    effect_view.setAutoresizingMask(
+        objc2_ui_kit::UIViewAutoresizing::FlexibleWidth
+            | objc2_ui_kit::UIViewAutoresizing::FlexibleHeight,
+    );
     effect_view.layer().setCornerRadius(16.0);
     effect_view.setClipsToBounds(true);
     effect_view.setUserInteractionEnabled(false);
@@ -271,34 +421,59 @@ pub fn create_menu_view(frame: CGRect, mtm: MainThreadMarker) -> Retained<UIView
     menu.setUserInteractionEnabled(true);
 
     let handler = MenuActionHandler::new(mtm);
-    let header: Retained<UIView> = UIView::initWithFrame(UIView::alloc(mtm), CGRect::new(CGPoint::new(0.0, 0.0), CGSize::new(frame.size.width, 50.0)));
+    let header: Retained<UIView> = UIView::initWithFrame(
+        UIView::alloc(mtm),
+        CGRect::new(CGPoint::new(0.0, 0.0), CGSize::new(frame.size.width, 50.0)),
+    );
     header.setBackgroundColor(Some(&Theme::header()));
     header.setClipsToBounds(true);
     header.layer().setCornerRadius(16.0);
     menu.addSubview(&header);
 
     let pan_gesture = unsafe {
-        let gesture: Allocated<UIPanGestureRecognizer> = msg_send![UIPanGestureRecognizer::class(), alloc];
-        let gesture: Retained<UIPanGestureRecognizer> = msg_send![gesture, initWithTarget: &*handler, action: sel!(handlePan:)];
+        let gesture: Allocated<UIPanGestureRecognizer> =
+            msg_send![UIPanGestureRecognizer::class(), alloc];
+        let gesture: Retained<UIPanGestureRecognizer> =
+            msg_send![gesture, initWithTarget: &*handler, action: sel!(handlePan:)];
         gesture
     };
     menu.addGestureRecognizer(&pan_gesture);
 
     let tap_gesture = unsafe {
-        let gesture: Allocated<UITapGestureRecognizer> = msg_send![UITapGestureRecognizer::class(), alloc];
-        let gesture: Retained<UITapGestureRecognizer> = msg_send![gesture, initWithTarget: &*handler, action: sel!(handleTap:)];
+        let gesture: Allocated<UITapGestureRecognizer> =
+            msg_send![UITapGestureRecognizer::class(), alloc];
+        let gesture: Retained<UITapGestureRecognizer> =
+            msg_send![gesture, initWithTarget: &*handler, action: sel!(handleTap:)];
         gesture.setCancelsTouchesInView(false);
         gesture
     };
     menu.addGestureRecognizer(&tap_gesture);
 
-    header.addSubview(&create_label(CGRect::new(CGPoint::new(16.0, 12.0), CGSize::new(200.0, 26.0)), "RGG - v0.2.0", 18.0, true, mtm));
-    let close_btn = UIButton::initWithFrame(UIButton::alloc(mtm), CGRect::new(CGPoint::new(frame.size.width - 44.0, 8.0), CGSize::new(36.0, 36.0)));
+    header.addSubview(&create_label(
+        CGRect::new(CGPoint::new(16.0, 12.0), CGSize::new(200.0, 26.0)),
+        "RGG - v0.2.0",
+        18.0,
+        true,
+        mtm,
+    ));
+    let close_btn = UIButton::initWithFrame(
+        UIButton::alloc(mtm),
+        CGRect::new(
+            CGPoint::new(frame.size.width - 44.0, 8.0),
+            CGSize::new(36.0, 36.0),
+        ),
+    );
     close_btn.setTitle_forState(Some(&NSString::from_str("✕")), UIControlState::Normal);
     close_btn.setTitleColor_forState(Some(&Theme::text_secondary()), UIControlState::Normal);
     close_btn.setUserInteractionEnabled(true);
     close_btn.setTag(99);
-    unsafe { close_btn.addTarget_action_forControlEvents(Some(&handler), sel!(handleAction:), UIControlEvents::TouchUpInside); }
+    unsafe {
+        close_btn.addTarget_action_forControlEvents(
+            Some(&handler),
+            sel!(handleAction:),
+            UIControlEvents::TouchUpInside,
+        );
+    }
     header.addSubview(&close_btn);
 
     let scroll_view: Retained<UIView> = unsafe {
@@ -322,11 +497,15 @@ fn clear_content(view: &UIView) {
 
 fn hex_to_color(hex: &str) -> Option<Retained<objc2_ui_kit::UIColor>> {
     let hex = hex.trim_start_matches('#');
-    if hex.len() != 6 { return None; }
+    if hex.len() != 6 {
+        return None;
+    }
     let r = u8::from_str_radix(&hex[0..2], 16).ok()? as f64 / 255.0;
     let g = u8::from_str_radix(&hex[2..4], 16).ok()? as f64 / 255.0;
     let b = u8::from_str_radix(&hex[4..6], 16).ok()? as f64 / 255.0;
-    Some(unsafe { msg_send![objc2_ui_kit::UIColor::class(), colorWithRed: r, green: g, blue: b, alpha: 1.0] })
+    Some(unsafe {
+        msg_send![objc2_ui_kit::UIColor::class(), colorWithRed: r, green: g, blue: b, alpha: 1.0]
+    })
 }
 
 pub fn render_content(page_id: i32) {
@@ -338,7 +517,7 @@ pub fn render_content(page_id: i32) {
             let mut y_offset: f64 = 10.0;
             let (item_height, padding) = (44.0, 16.0);
             let handler = ACTION_HANDLER.with(|h| h.borrow().clone()).unwrap();
-            
+
             if page_id != 0 {
                 let title = REGISTRY.lock().unwrap().page_titles.get(&page_id).cloned().unwrap_or_else(|| "Menu".to_string());
                 let header = create_header(CGRect::new(CGPoint::new(padding, y_offset), CGSize::new(frame.size.width - padding * 2.0, 40.0)), &title, mtm);
@@ -359,7 +538,7 @@ pub fn render_content(page_id: i32) {
                              scroll_view.addSubview(&btn);
                              y_offset += item_height + 10.0;
                         }
-                        MenuItem::Toggle { id, name, key, default, .. } => {
+                        MenuItem::Toggle { id, name, key, default, callback, .. } => {
                              let toggle = create_toggle_item(CGRect::new(CGPoint::new(padding, y_offset), CGSize::new(frame.size.width - padding * 2.0, item_height)), name, mtm);
                              toggle.setTag(*id as isize);
                              let mut current = super::pref::Preferences::get_bool(key);
@@ -373,6 +552,12 @@ pub fn render_content(page_id: i32) {
                                      f.origin.x = if current { 22.0 } else { 2.0 };
                                      knob.setFrame(f);
                                      if current { knob.setBackgroundColor(Some(&Theme::knob_on())); }
+                                 }
+                             }
+                             // Execute callback if toggle is enabled from previous session
+                             if current {
+                                 if let Some(cb) = callback {
+                                     cb(true);
                                  }
                              }
                              unsafe { toggle.addTarget_action_forControlEvents(Some(&handler), sel!(handleAction:), UIControlEvents::TouchUpInside); }
@@ -427,17 +612,14 @@ pub fn render_content(page_id: i32) {
     });
 }
 
-
 pub fn toggle_menu(menu: &UIView) {
     let is_hidden = menu.isHidden();
     menu.setHidden(!is_hidden);
 }
 
-
 pub fn show_menu(menu: &UIView) {
     menu.setHidden(false);
 }
-
 
 pub fn hide_menu(menu: &UIView) {
     menu.setHidden(true);

@@ -2,25 +2,25 @@
 
 A high-performance iOS modding framework built entirely from scratch in Rust—no Substrate, no Dobby, no external libraries.
 
-## Status
-
-**Currently Jailbreak Only** - This project requires a jailbroken iOS device. Support for non-jailbroken devices is planned for future development.
-
 ## Features
 
-- **Custom ARM64 Inline Hooking**: Hand-crafted trampoline generation with PC-relative instruction relocation (supports conditional branches, BL, ADR/ADRP, and LDR literals).
-- **W^X Compliant Memory Patching**: Safe memory writes with automatic thread suspension/resumption and instruction cache invalidation.
-- **Type-Safe Memory Utilities**: Read/write operations with RVA-to-absolute address conversion and pointer chain traversal.
-- **Apple Unified Logging**: Direct `oslog` integration for debugging via Console.app.
-- **Zero External Binary Dependencies**: Built on direct `mach2` syscalls and idiomatic Rust with exhaustive error handling via `thiserror`.
+- **ARM64 Inline Hooking**: Custom trampoline generation and instruction relocation (Jailbreak only).
+- **Hardware Breakpoints**: Non-jailbreak hooking via debug registers (Both).
+- **W^X Memory Patching**: Safe writes with thread management and cache invalidation (Jailbreak only).
+- **Memory Utilities**: Type-safe RVA conversion and pointer chain traversal.
+- **Memory Scanning**: IDA-style signature finding with wildcards.
+- **Zero Dependencies**: Pure Rust using direct `mach2` syscalls.
+- **In-Game UI**: Responsive menu built with `objc2`.
+
 
 ## Configuration
 
 You can customize the tweak behavior in `src/config.rs`:
 
 ```rust
-pub const TARGET_IMAGE_NAME: &str = "UnityFramework"; // Binary to hook
-pub const DEBUG: bool = true;                         // Toggle detailed logging
+pub const TARGET_IMAGE_NAME: &str = "UnityFramework";             // Binary to hook
+pub const DEBUG: bool = true;                                     // Toggle detailed logging
+pub const SELECTED_THEME: ThemeVariant = ThemeVariant::Default;   // Theme variant
 ```
 
 ## Building & Deploying
@@ -49,9 +49,9 @@ Logs are sent to the Apple Unified Logging System. You can view them using **Con
 Planned features and improvements for future releases:
 
 - [x] **In-Game UI Menu**: SwiftUI or Metal-based overlay for runtime mod control *(foundation implemented)*
-- [ ] **Memory Scanning**: Pattern scanning and signature-based function finding
-- [ ] **Breakpoint Hooks**: Hardware breakpoint support for non-jailbroken devices
-- [ ] **Symbol Resolution**: Automatic symbol lookup and caching
+- [x] **Memory Scanning**: Pattern scanning and signature-based function finding
+- [x] **Breakpoint Hooks**: Hardware breakpoint support for non-jailbroken devices
+- [x] **Symbol Resolution**: Automatic symbol lookup and caching
 - [ ] **Hot Reloading**: Dynamic mod loading without reinjection
 - [ ] **Il2cpp Resolver**: Automatic il2cpp class and method resolution
 
@@ -76,3 +76,8 @@ Educational purposes only. Modifying games may violate Terms of Service. Use at 
 ## License
 
 [MIT License](https://github.com/Batchhh/Rust-ios-tweak/blob/main/LICENSE) - See LICENSE file for details.
+
+## Credits
+
+- [Batch](https://github.com/Batchhh) - Creator
+- [Titanox](https://github.com/Ragekill3377/Titanox) - Inspiration for breakpoint hooks

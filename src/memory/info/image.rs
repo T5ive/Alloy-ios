@@ -8,7 +8,7 @@ use mach2::dyld::{
 };
 use thiserror::Error;
 
-#[derive(Error, Debug)] 
+#[derive(Error, Debug)]
 pub enum ImageError {
     #[error("Image not found: {0}")]
     NotFound(String),

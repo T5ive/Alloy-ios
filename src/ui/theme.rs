@@ -27,7 +27,7 @@ impl Theme {
             ThemeVariant::Light => UIColor::colorWithRed_green_blue_alpha(1.0, 1.0, 1.0, 0.95),
         }
     }
-    
+
     pub fn header() -> Retained<UIColor> {
         match Self::current() {
             ThemeVariant::Default => UIColor::colorWithRed_green_blue_alpha(0.0, 0.0, 0.0, 0.3),
@@ -36,7 +36,7 @@ impl Theme {
             ThemeVariant::Light => UIColor::colorWithRed_green_blue_alpha(0.95, 0.95, 0.95, 0.9),
         }
     }
-    
+
     pub fn accent() -> Retained<UIColor> {
         match Self::current() {
             ThemeVariant::Default => UIColor::whiteColor(),
@@ -45,14 +45,16 @@ impl Theme {
             ThemeVariant::Light => UIColor::systemBlueColor(),
         }
     }
-    
+
     pub fn text() -> Retained<UIColor> {
         match Self::current() {
-            ThemeVariant::Default | ThemeVariant::DeepBlue | ThemeVariant::Sunset => UIColor::whiteColor(),
+            ThemeVariant::Default | ThemeVariant::DeepBlue | ThemeVariant::Sunset => {
+                UIColor::whiteColor()
+            }
             ThemeVariant::Light => UIColor::blackColor(),
         }
     }
-    
+
     pub fn text_secondary() -> Retained<UIColor> {
         match Self::current() {
             ThemeVariant::Default => UIColor::lightGrayColor(),
@@ -61,7 +63,7 @@ impl Theme {
             ThemeVariant::Light => UIColor::darkGrayColor(),
         }
     }
-    
+
     pub fn toggle_off() -> Retained<UIColor> {
         match Self::current() {
             ThemeVariant::Default => UIColor::darkGrayColor(),
@@ -88,7 +90,7 @@ impl Theme {
             ThemeVariant::Light => UIColor::colorWithRed_green_blue_alpha(0.0, 0.0, 0.0, 0.1),
         }
     }
-    
+
     pub fn menu_border() -> Retained<UIColor> {
         match Self::current() {
             ThemeVariant::Default => UIColor::colorWithRed_green_blue_alpha(1.0, 1.0, 1.0, 0.15),
@@ -119,7 +121,7 @@ impl Theme {
     pub fn shadow() -> Retained<UIColor> {
         UIColor::blackColor()
     }
-    
+
     pub fn knob_on() -> Retained<UIColor> {
         match Self::current() {
             ThemeVariant::Light => UIColor::whiteColor(),
@@ -147,14 +149,14 @@ impl Theme {
             _ => UIColor::colorWithRed_green_blue_alpha(1.0, 1.0, 1.0, 0.1),
         }
     }
-    
+
     pub fn input_border() -> Retained<UIColor> {
         match Self::current() {
             ThemeVariant::Light => UIColor::colorWithRed_green_blue_alpha(0.0, 0.0, 0.0, 0.2),
-             _ => UIColor::colorWithRed_green_blue_alpha(1.0, 1.0, 1.0, 0.2)
+            _ => UIColor::colorWithRed_green_blue_alpha(1.0, 1.0, 1.0, 0.2),
         }
     }
-    
+
     pub fn input_placeholder_background() -> Retained<UIColor> {
         match Self::current() {
             ThemeVariant::Light => UIColor::colorWithRed_green_blue_alpha(0.0, 0.0, 0.0, 0.05),

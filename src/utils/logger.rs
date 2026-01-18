@@ -1,4 +1,4 @@
-//! Logging via Apple Unified Logging System 
+//! Logging via Apple Unified Logging System
 
 use log::LevelFilter;
 use oslog::OsLogger;
@@ -26,7 +26,6 @@ pub fn info(msg: &str) {
     ensure_initialized();
     log::info!("[RGG] {}", msg);
 }
-
 
 pub fn debug(msg: &str) {
     ensure_initialized();

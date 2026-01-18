@@ -1,6 +1,7 @@
+//! Preferences
+
 use objc2::rc::Retained;
-use objc2_foundation::{NSUserDefaults, NSString};
-// use objc2::ClassType;
+use objc2_foundation::{NSString, NSUserDefaults};
 
 pub struct Preferences;
 
