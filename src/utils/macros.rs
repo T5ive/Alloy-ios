@@ -1,3 +1,6 @@
+//! Here you will add your macro_rule
+
+//! Spawn a std::thread with loop for continuous update stuffs
 #[macro_export]
 macro_rules! loop_thread {
     ($seconds:expr, $body:block) => {

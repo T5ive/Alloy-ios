@@ -23,6 +23,7 @@ impl UISelectionFeedbackGenerator {
     }
 
     /// Triggers the feedback (selection change haptic)
+    #[allow(non_snake_case)]
     pub fn selectionChanged(&self) {
         unsafe {
             let _: () = msg_send![self, selectionChanged];

@@ -1,7 +1,7 @@
 //! components creation
 use objc2::rc::Retained;
-use objc2::runtime::{AnyObject, Class};
-use objc2::{msg_send, sel, ClassType, MainThreadOnly};
+use objc2::runtime::{AnyClass, AnyObject};
+use objc2::{msg_send, sel, MainThreadOnly};
 use objc2_core_foundation::{CGPoint, CGRect, CGSize};
 use objc2_foundation::{MainThreadMarker, NSString};
 use objc2_ui_kit::{
@@ -51,7 +51,6 @@ pub fn create_section_header(
     unsafe {
         label.setTextColor(Some(&Theme::text_secondary()));
         label.setFont(Some(&UIFont::boldSystemFontOfSize(13.0)));
-        let layer = label.layer();
     }
     label
 }
@@ -80,6 +79,7 @@ pub fn styled_container(frame: CGRect, mtm: MainThreadMarker) -> Retained<UIButt
 
     item.setUserInteractionEnabled(true);
 
+    #[allow(deprecated)]
     item.setAdjustsImageWhenHighlighted(false);
     item
 }
@@ -91,6 +91,7 @@ pub fn styled_container(frame: CGRect, mtm: MainThreadMarker) -> Retained<UIButt
 /// * `title` - Button title
 /// * `background` - Background color
 /// * `mtm` - Main thread marker
+#[allow(dead_code)]
 pub fn create_button(
     frame: CGRect,
     title: &str,
@@ -134,8 +135,8 @@ pub fn create_slider(
         slider.setThumbTintColor(Some(&Theme::accent()));
         slider.setMaximumTrackTintColor(Some(&Theme::slider_track_inactive()));
 
-        let image_cls = Class::get(c"UIImage").expect("UIImage class not found");
-        let config_cls = Class::get(c"UIImageSymbolConfiguration")
+        let image_cls = AnyClass::get(c"UIImage").expect("UIImage class not found");
+        let config_cls = AnyClass::get(c"UIImageSymbolConfiguration")
             .expect("UIImageSymbolConfiguration class not found");
 
         // UIImageSymbolScaleSmall = 1
@@ -174,9 +175,7 @@ pub fn create_text_input(
     }
     input.setPlaceholder(Some(&NSString::from_str(placeholder)));
 
-    unsafe {
-        input.setTextColor(Some(&Theme::text()));
-    }
+    input.setTextColor(Some(&Theme::text()));
 
     let padding = UIView::initWithFrame(
         UIView::alloc(mtm),
@@ -192,13 +191,13 @@ pub fn create_text_input(
         UIButton::alloc(mtm),
         CGRect::new(CGPoint::new(0.0, 0.0), CGSize::new(20.0, 20.0)),
     );
-    let image_cls = Class::get(c"UIImage").expect("UIImage class not found");
+    let image_cls = AnyClass::get(c"UIImage").expect("UIImage class not found");
     let symbol_name = NSString::from_str("xmark.circle.fill");
     let image: Retained<AnyObject> =
         unsafe { msg_send![image_cls, systemImageNamed: &*symbol_name] };
 
     unsafe {
-        let _: () = msg_send![&clear_btn, setImage: &*image forState: 0_usize];
+        let _: () = msg_send![&clear_btn, setImage: &*image, forState: 0_usize];
         clear_btn.setTintColor(Some(&Theme::text()));
     }
 

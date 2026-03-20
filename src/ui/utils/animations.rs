@@ -8,7 +8,6 @@ use objc2_core_foundation::CGAffineTransform;
 use objc2_foundation::{NSNumber, NSString};
 use objc2_quartz_core::{CABasicAnimation, CALayer, CAMediaTiming, CAMediaTimingFunction};
 use objc2_ui_kit::UIView;
-use std::ffi::c_void;
 
 fn retain_view(view: &UIView) -> Retained<UIView> {
     unsafe {
@@ -33,8 +32,8 @@ pub fn animate(
     unsafe {
         let _: () = msg_send![
             UIView::class(),
-            animateWithDuration: duration
-            animations: &*anim_block
+            animateWithDuration: duration,
+            animations: &*anim_block,
             completion: completion_block.as_deref().map(|c| c as *const _).unwrap_or(std::ptr::null())
         ];
     }
@@ -58,12 +57,12 @@ pub fn animate_spring(
     unsafe {
         let _: () = msg_send![
             UIView::class(),
-            animateWithDuration: duration
-            delay: 0.0f64
-            usingSpringWithDamping: damping
-            initialSpringVelocity: velocity
-            options: 0usize
-            animations: &*anim_block
+            animateWithDuration: duration,
+            delay: 0.0f64,
+            usingSpringWithDamping: damping,
+            initialSpringVelocity: velocity,
+            options: 0usize,
+            animations: &*anim_block,
             completion: completion_block.as_deref().map(|c| c as *const _).unwrap_or(std::ptr::null())
         ];
     }
@@ -74,7 +73,7 @@ pub fn fade_in(view: &UIView, duration: f64) {
     let view = retain_view(view);
     animate(
         duration,
-        move || unsafe {
+        move || {
             view.setAlpha(1.0);
         },
         None::<fn(bool)>,
@@ -86,7 +85,7 @@ pub fn fade_out(view: &UIView, duration: f64) {
     let view = retain_view(view);
     animate(
         duration,
-        move || unsafe {
+        move || {
             view.setAlpha(0.0);
         },
         None::<fn(bool)>,
@@ -100,7 +99,7 @@ pub fn scale_spring(view: &UIView, scale: f64, duration: f64) {
         duration,
         0.7,
         0.5,
-        move || unsafe {
+        move || {
             view.setTransform(CGAffineTransform {
                 a: scale,
                 b: 0.0,
@@ -119,7 +118,7 @@ pub fn scale(view: &UIView, scale: f64, duration: f64) {
     let view = retain_view(view);
     animate(
         duration,
-        move || unsafe {
+        move || {
             view.setTransform(CGAffineTransform {
                 a: scale,
                 b: 0.0,
@@ -137,8 +136,8 @@ pub fn scale(view: &UIView, scale: f64, duration: f64) {
 pub fn animate_stroke_end(layer: &CALayer, duration: f64, ease_in_out: bool) {
     let anim = CABasicAnimation::animationWithKeyPath(Some(&NSString::from_str("strokeEnd")));
 
-    let from_val = unsafe { NSNumber::numberWithFloat(0.0) };
-    let to_val = unsafe { NSNumber::numberWithFloat(1.0) };
+    let from_val = NSNumber::numberWithFloat(0.0);
+    let to_val = NSNumber::numberWithFloat(1.0);
 
     unsafe {
         let from_obj: &AnyObject = std::mem::transmute(&*from_val);
@@ -185,12 +184,12 @@ pub fn animate_spring_with_delay(
     unsafe {
         let _: () = msg_send![
             UIView::class(),
-            animateWithDuration: duration
-            delay: delay
-            usingSpringWithDamping: damping
-            initialSpringVelocity: velocity
-            options: options
-            animations: &*anim_block
+            animateWithDuration: duration,
+            delay: delay,
+            usingSpringWithDamping: damping,
+            initialSpringVelocity: velocity,
+            options: options,
+            animations: &*anim_block,
             completion: completion_block.as_deref().map(|c| c as *const _).unwrap_or(std::ptr::null())
         ];
     }
@@ -214,10 +213,10 @@ pub fn animate_with_delay(
     unsafe {
         let _: () = msg_send![
             UIView::class(),
-            animateWithDuration: duration
-            delay: delay
-            options: options
-            animations: &*anim_block
+            animateWithDuration: duration,
+            delay: delay,
+            options: options,
+            animations: &*anim_block,
             completion: completion_block.as_deref().map(|c| c as *const _).unwrap_or(std::ptr::null())
         ];
     }
@@ -233,7 +232,7 @@ pub fn pulse(view: &UIView, scale: f64, duration: f64) {
         duration / 2.0,
         0.7,
         0.5,
-        move || unsafe {
+        move || {
             view_anim.setTransform(CGAffineTransform {
                 a: scale,
                 b: 0.0,
@@ -249,7 +248,7 @@ pub fn pulse(view: &UIView, scale: f64, duration: f64) {
                 duration / 2.0,
                 0.7,
                 0.5,
-                move || unsafe {
+                move || {
                     view_restore_clone.setTransform(CGAffineTransform {
                         a: 1.0,
                         b: 0.0,

@@ -34,6 +34,7 @@ impl CAGradientLayer {
     }
 
     /// Sets the colors for the gradient
+    #[allow(non_snake_case)]
     pub fn setColors(&self, colors: &objc2_foundation::NSArray<NSObject>) {
         unsafe { msg_send![self, setColors: colors] }
     }
@@ -52,6 +53,7 @@ impl UIVisualEffectView {
     /// Returns the content view where subviews should be added
     ///
     /// iOS requires adding subviews to contentView, not directly to UIVisualEffectView
+    #[allow(non_snake_case)]
     pub fn contentView(&self) -> Retained<UIView> {
         unsafe { msg_send![self, contentView] }
     }

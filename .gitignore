@@ -10,4 +10,5 @@ target/
 packages/
 Cargo.lock
 .theos
-scripts/
+scripts
+.cargo//

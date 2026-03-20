@@ -23,21 +23,13 @@ Read the source code to understand it better, since there will be no documentati
 ## Viewing Logs
 
 Logs are sent to the Apple Unified Logging System. You can view them using **Console.app** on macOS:
-- filter for: `Alloy` or `subsystem:com.batch.alloy`.
+- filter for: `Alloy` or `subsystem:com.ios.alloy`.
 
 ## Contributing
 
-Contributions are welcome! If you find any issues or have suggestions, please [open an issue](https://github.com/Batchhh/Rust-ios-tweak/issues).
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-For collaboration, feel free to submit [pull requests](https://github.com/Batchhh/Rust-ios-tweak/pulls).
-
-Follow Rust conventions (`cargo fmt`, `cargo clippy`) and document your changes.
-
-### Commit Guidelines
-
-- Use clear, descriptive messages
-- Format: `type: brief description`
-- Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
+If you find any issues or have suggestions, please [open an issue](https://github.com/Batchhh/Alloy-ios/issues).
 
 ## Legal
 
@@ -45,7 +37,7 @@ Educational purposes only. Modifying games may violate Terms of Service. Use at 
 
 ## License
 
-[MIT License](https://github.com/Batchhh/Rust-ios-tweak/blob/main/LICENSE) - See LICENSE file for details.
+[MIT License](https://github.com/Batchhh/Alloy-ios/blob/main/LICENSE) - See LICENSE file for details.
 
 ## Credits
 

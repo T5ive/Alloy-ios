@@ -1,9 +1,9 @@
 //! Items creation
 use objc2::rc::Retained;
-use objc2::{msg_send, MainThreadOnly};
+use objc2::MainThreadOnly;
 use objc2_core_foundation::{CGPoint, CGRect, CGSize};
 use objc2_foundation::MainThreadMarker;
-use objc2_ui_kit::{UIButton, UIControlState, UIView};
+use objc2_ui_kit::{UIButton, UIView};
 
 use crate::ui::components::widgets::{
     create_label, create_slider, create_text_input, styled_container,

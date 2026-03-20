@@ -6,12 +6,11 @@
 //! - Menu rendering and UI updates
 pub mod handler;
 pub mod items;
+#[allow(dead_code)]
 pub mod registry;
+#[allow(dead_code)]
 pub mod utils;
 pub mod view;
 
-pub use handler::*;
-pub use items::*;
 pub use registry::*;
-pub use utils::*;
 pub use view::*;
