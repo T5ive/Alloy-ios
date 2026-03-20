@@ -7,7 +7,7 @@
   rustup target add aarch64-apple-ios
   ```
 - **Theos** build system installed and configured (`$THEOS` set)
-- A jailbroken iOS device (arm64) or a supported sideloading method
+- A jailbroken iOS device (arm64) or non jailbreak with https://sideloadly.io/ or https://github.com/CLARATION/Impactor
 - (Optional) [sccache](https://github.com/mozilla/sccache) for faster rebuilds
 
 ## Project Setup
