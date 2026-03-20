@@ -18,7 +18,23 @@
    cd Alloy-ios
    ```
 
-2. Configure your target in `src/config.rs`:
+2. Point the tweak at the process(es) that should load it by editing **`alloy.plist`** in the repo root. This file is the Theos [filter plist](https://theos.dev/docs/tweak-plists): it lists bundle identifiers whose processes get `alloy.dylib` injected.
+
+   The default only targets SpringBoard:
+
+   ```text
+   { Filter = { Bundles = ( "com.apple.springboard" ); }; }
+   ```
+
+   For a specific app, replace that bundle ID with yours (e.g. `com.example.mygame`). You can list several:
+
+   ```text
+   { Filter = { Bundles = ( "com.example.a", "com.example.b" ); }; }
+   ```
+
+   Change this whenever you switch target apps so injection matches the binary you hook in code.
+
+3. Configure your target in `src/config.rs`:
    ```rust
    // Override the target binary (optional — defaults to UnityFramework or main executable)
    config::set_target_image_name("YourBinary");
@@ -32,7 +48,7 @@
    pub const WELCOME_MESSAGE: &str = "Unleashing the dragon...";
    ```
 
-3. Write your logic in `src/entry.rs`. This is the main entry point where you register UI elements and set up hooks/patches.
+4. Write your logic in `src/lib.rs`. This is the main entry point where you register UI elements and set up hooks/patches.
 
 ## Building
 

@@ -18,7 +18,12 @@ High-performance iOS modding framework built in Rust.
 
 ## Documentation
 
-Read the source code to understand it better, since there will be no documentation. It is easy to understand since it is well commented.
+- [Getting started](docs/getting-started.md) — prerequisites, `alloy.plist`, `config.rs`, build, deploy, logs
+- [Architecture](docs/architecture.md)
+- [Memory](docs/memory.md)
+- [UI](docs/ui.md)
+
+The codebase is also commented; read sources alongside these guides when diving deeper.
 
 ## Viewing Logs
 
