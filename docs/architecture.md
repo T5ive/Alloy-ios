@@ -14,7 +14,6 @@ Process launch
       → entry::init()                  (src/entry.rs)
         → Queue::main().exec_async()
           → init_ui()                  register menu items & init overlay
-          → memory_examples()          set up hooks/patches
 ```
 
 All UI work is dispatched to the main queue since UIKit requires main-thread access.
