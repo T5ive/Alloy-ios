@@ -41,11 +41,6 @@
 
    // Set the menu theme
    pub const SELECTED_THEME: ThemeVariant = ThemeVariant::Nord;
-
-   // Customize menu metadata
-   pub const MENU_NAME: &str = "Alloy";
-   pub const VERSION: &str = "1.0.1";
-   pub const WELCOME_MESSAGE: &str = "Unleashing the dragon...";
    ```
 
 4. Write your logic in `src/lib.rs`. This is the main entry point where you register UI elements and set up hooks/patches.

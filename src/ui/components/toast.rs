@@ -23,7 +23,6 @@ thread_local! {
 enum ToastType {
     Standard(ToastStatus),
     Loading,
-    Welcome,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -36,10 +35,7 @@ pub enum ToastStatus {
 /// Configuration for a toast notification
 struct ToastConfig<'a> {
     text: &'a str,
-    detail_text: Option<&'a str>,
-    version: Option<&'a str>,
     toast_type: ToastType,
-    on_finished: Option<Box<dyn FnOnce() + Send>>,
 }
 
 /// Presents a standard toast notification with the given configuration
@@ -48,14 +44,10 @@ struct ToastConfig<'a> {
 ///
 /// * `text` - The text of the standard toast
 /// * `status` - The status of the standard toast
-/// * `on_finished` - The callback to be called when the standard toast is finished
 pub fn show_toast(text: &str, status: ToastStatus) {
     present_toast(ToastConfig {
         text,
-        detail_text: None,
-        version: None,
         toast_type: ToastType::Standard(status),
-        on_finished: None,
     });
 }
 
@@ -64,37 +56,10 @@ pub fn show_toast(text: &str, status: ToastStatus) {
 /// # Arguments
 ///
 /// * `text` - The text of the loading toast
-/// * `on_finished` - The callback to be called when the loading toast is finished
 pub fn show_loading(text: &str) {
     present_toast(ToastConfig {
         text,
-        detail_text: None,
-        version: None,
         toast_type: ToastType::Loading,
-        on_finished: None,
-    });
-}
-
-/// Presents a welcome toast notification with the given configuration
-///
-/// # Arguments
-///
-/// * `title` - The title of the welcome toast
-/// * `version` - The version of the welcome toast
-/// * `description` - The description of the welcome toast
-/// * `on_finished` - The callback to be called when the welcome toast is finished
-pub fn show_welcome(
-    title: &str,
-    version: &str,
-    description: &str,
-    on_finished: Box<dyn FnOnce() + Send>,
-) {
-    present_toast(ToastConfig {
-        text: title,
-        detail_text: Some(description),
-        version: Some(version),
-        toast_type: ToastType::Welcome,
-        on_finished: Some(on_finished),
     });
 }
 
@@ -104,13 +69,7 @@ pub fn show_welcome(
 ///
 /// * `config` - The configuration for the toast
 fn present_toast(config: ToastConfig) {
-    let (text, detail_text, version_text, toast_type) = (
-        config.text.to_string(),
-        config.detail_text.map(|s| s.to_string()),
-        config.version.map(|s| s.to_string()),
-        config.toast_type,
-    );
-    let on_finished = std::sync::Arc::new(std::sync::Mutex::new(config.on_finished));
+    let (text, toast_type) = (config.text.to_string(), config.toast_type);
 
     Queue::main().exec_async(move || {
         if let Some(mtm) = MainThreadMarker::new() {
@@ -132,10 +91,7 @@ fn present_toast(config: ToastConfig) {
                 let top_padding = window.safeAreaInsets().top + 12.0;
                 let (cw, ch) = (126.0, 37.0);
                 let cr = ch / 2.0;
-                let (ew, eh, er) = match toast_type {
-                    ToastType::Welcome => (350.0_f64.min(wb.size.width - 32.0), 80.0, 40.0),
-                    _ => (300.0_f64.min(wb.size.width - 32.0), 50.0, 25.0),
-                };
+                let (ew, eh, er) = (300.0_f64.min(wb.size.width - 32.0), 50.0, 25.0);
                 let (sx, sy, ex) = (
                     (wb.size.width - cw) / 2.0,
                     top_padding,
@@ -169,25 +125,8 @@ fn present_toast(config: ToastConfig) {
                     (None, None)
                 };
 
-                let (welcome_icon, welcome_layer) = if matches!(toast_type, ToastType::Welcome) {
-                    let (c, l) = create_welcome_icon(
-                        mtm,
-                        CGRect::new(
-                            CGPoint::new(24.0, ((eh - 40.0) / 2.0) + 5.0),
-                            CGSize::new(40.0, 40.0),
-                        ),
-                        &container,
-                    );
-                    (Some(c), Some(l))
-                } else {
-                    (None, None)
-                };
-
                 let text_label = UILabel::new(mtm);
                 let lf = match toast_type {
-                    ToastType::Welcome => {
-                        CGRect::new(CGPoint::new(80.0, 18.0), CGSize::new(ew - 100.0, 26.0))
-                    }
                     ToastType::Loading => {
                         CGRect::new(CGPoint::new(20.0, 0.0), CGSize::new(ew - 70.0, eh))
                     }
@@ -198,49 +137,12 @@ fn present_toast(config: ToastConfig) {
                 text_label.setFrame(lf);
                 text_label.setText(Some(&NSString::from_str(&text)));
                 text_label.setTextColor(Some(&Theme::text()));
-                let title_size = text_label.intrinsicContentSize();
 
-                let (version_bg, _version_label) =
-                    if let (Some(ver), ToastType::Welcome) = (version_text.as_ref(), toast_type) {
-                        let (bg, lbl) = create_version_badge(
-                            mtm,
-                            ver,
-                            80.0 + title_size.width + 8.0,
-                            31.0,
-                            &container,
-                        );
-                        (Some(bg), Some(lbl))
-                    } else {
-                        (None, None)
-                    };
-
-                text_label.setFont(Some(&UIFont::boldSystemFontOfSize(
-                    if matches!(toast_type, ToastType::Welcome) {
-                        17.0
-                    } else {
-                        15.0
-                    },
-                )));
+                text_label.setFont(Some(&UIFont::boldSystemFontOfSize(15.0)));
                 text_label.setTextAlignment(objc2_ui_kit::NSTextAlignment::Left);
                 text_label.setNumberOfLines(1);
                 text_label.setAlpha(0.0);
                 container.addSubview(&text_label);
-
-                let desc_label = detail_text.as_ref().map(|desc| {
-                    let dl = UILabel::new(mtm);
-                    dl.setFrame(CGRect::new(
-                        CGPoint::new(80.0, 46.0),
-                        CGSize::new(ew - 100.0, 20.0),
-                    ));
-                    dl.setText(Some(&NSString::from_str(desc)));
-                    dl.setTextColor(Some(&Theme::text_secondary()));
-                    dl.setFont(Some(&UIFont::systemFontOfSize(15.0)));
-                    dl.setTextAlignment(objc2_ui_kit::NSTextAlignment::Left);
-                    dl.setNumberOfLines(1);
-                    dl.setAlpha(0.0);
-                    container.addSubview(&dl);
-                    dl
-                });
 
                 container.setTransform(CGAffineTransform {
                     a: 0.8,
@@ -273,18 +175,14 @@ fn present_toast(config: ToastConfig) {
                         c1.setAlpha(1.0);
                     },
                     Some({
-                        let (c2, eff, txt, dots_e, dots_b, desc, sd, sl, wi, wl, vb) = (
+                        let (c2, eff, txt, dots_e, dots_b, sd, sl) = (
                             container.clone(),
                             effect.clone(),
                             text_label.clone(),
                             dots.clone(),
                             dots.clone(),
-                            desc_label.clone(),
                             status_dot.clone(),
                             status_layer.clone(),
-                            welcome_icon.clone(),
-                            welcome_layer.clone(),
-                            version_bg.clone(),
                         );
                         move |_| {
                             animations::animate_spring_with_delay(
@@ -294,15 +192,12 @@ fn present_toast(config: ToastConfig) {
                                 0.4,
                                 0,
                                 {
-                                    let (c, e, t, d, desc, sd, wi, vb) = (
+                                    let (c, e, t, d, sd) = (
                                         c2.clone(),
                                         eff.clone(),
                                         txt.clone(),
                                         dots_e.clone(),
-                                        desc.clone(),
                                         sd.clone(),
-                                        wi.clone(),
-                                        vb.clone(),
                                     );
                                     move || {
                                         c.setFrame(CGRect::new(
@@ -316,17 +211,8 @@ fn present_toast(config: ToastConfig) {
                                         e.layer().setCornerRadius(er);
                                         t.setAlpha(1.0);
                                         d.iter().for_each(|dot| dot.setAlpha(1.0));
-                                        if let Some(d) = desc.as_ref() {
-                                            d.setAlpha(1.0)
-                                        }
                                         if let Some(s) = sd.as_ref() {
                                             s.setAlpha(1.0)
-                                        }
-                                        if let Some(w) = wi.as_ref() {
-                                            w.setAlpha(1.0)
-                                        }
-                                        if let Some(v) = vb.as_ref() {
-                                            v.setAlpha(1.0)
                                         }
                                     }
                                 },
@@ -355,9 +241,6 @@ fn present_toast(config: ToastConfig) {
                             if let Some(l) = sl.as_ref() {
                                 animations::animate_stroke_end(l, 0.5, false)
                             }
-                            if let Some(l) = wl.as_ref() {
-                                animations::animate_stroke_end(l, 1.2, true)
-                            }
                         }
                     }),
                 );
@@ -367,13 +250,8 @@ fn present_toast(config: ToastConfig) {
                 }
 
                 let c_raw = Retained::into_raw(container) as usize;
-                let dur = if matches!(toast_type, ToastType::Welcome) {
-                    3500
-                } else {
-                    2000
-                };
 
-                Queue::main().exec_after(Duration::from_millis(dur), move || {
+                Queue::main().exec_after(Duration::from_millis(2000), move || {
                     let container = Retained::<UIView>::from_raw(c_raw as *mut UIView).unwrap();
                     let cf = container.clone();
 
@@ -415,7 +293,6 @@ fn present_toast(config: ToastConfig) {
                                     },
                                     Some({
                                         let c4 = c3.clone();
-                                        let of = on_finished.clone();
                                         move |_| {
                                             animations::animate(
                                                 0.3,
@@ -435,18 +312,10 @@ fn present_toast(config: ToastConfig) {
                                                 },
                                                 Some({
                                                     let c = c4.clone();
-                                                    let of = of.clone();
                                                     move |_| {
                                                         c.removeFromSuperview();
                                                         ACTIVE_TOAST
                                                             .with(|t| *t.borrow_mut() = None);
-                                                        if let Some(cb) = of
-                                                            .lock()
-                                                            .ok()
-                                                            .and_then(|mut l| l.take())
-                                                        {
-                                                            cb()
-                                                        }
                                                     }
                                                 }),
                                             );
@@ -549,73 +418,3 @@ fn create_status_icon(
     (ic, l)
 }
 
-fn create_welcome_icon(
-    mtm: MainThreadMarker,
-    frame: CGRect,
-    container: &UIView,
-) -> (Retained<UIView>, Retained<CAShapeLayer>) {
-    let ic = UIView::new(mtm);
-    ic.setFrame(frame);
-    ic.setAlpha(0.0);
-    container.addSubview(&ic);
-    let l = CAShapeLayer::new();
-    l.setFrame(ic.bounds());
-    l.setFillColor(None);
-    l.setLineWidth(2.5);
-    unsafe {
-        l.setLineCap(objc2_quartz_core::kCALineCapRound);
-        l.setLineJoin(objc2_quartz_core::kCALineJoinRound);
-    }
-    #[allow(clippy::missing_transmute_annotations)]
-    l.setStrokeColor(Some(unsafe {
-        std::mem::transmute(Theme::accent().CGColor())
-    }));
-    #[allow(clippy::missing_transmute_annotations)]
-    l.setPath(Some(unsafe {
-        std::mem::transmute(icons::dragon_head_path().CGPath())
-    }));
-    l.setStrokeEnd(0.0);
-    ic.layer().addSublayer(&l);
-    (ic, l)
-}
-
-fn create_version_badge(
-    mtm: MainThreadMarker,
-    version: &str,
-    start_x: f64,
-    center_y: f64,
-    container: &UIView,
-) -> (Retained<UIView>, Retained<UILabel>) {
-    let (bg, lbl) = (UIView::new(mtm), UILabel::new(mtm));
-    let ver_ns = NSString::from_str(version);
-
-    lbl.setText(Some(&ver_ns));
-    unsafe {
-        lbl.setFont(Some(&UIFont::boldSystemFontOfSize(10.0)));
-        lbl.setTextColor(Some(&Theme::accent()));
-    }
-    lbl.setTextAlignment(objc2_ui_kit::NSTextAlignment::Center);
-
-    let bs = lbl.intrinsicContentSize();
-    let (bw, bh) = (bs.width + 12.0, 18.0);
-
-    let y = center_y - (bh / 2.0) + 1.0;
-
-    bg.setFrame(CGRect::new(CGPoint::new(start_x, y), CGSize::new(bw, bh)));
-    bg.setBackgroundColor(Some(&Theme::accent_soft()));
-    bg.layer().setCornerRadius(bh / 2.0);
-    unsafe {
-        bg.layer()
-            .setCornerCurve(objc2_quartz_core::kCACornerCurveContinuous);
-    }
-
-    bg.setAlpha(0.0);
-
-    lbl.setFrame(bg.bounds());
-    lbl.setAlpha(1.0);
-
-    bg.addSubview(&lbl);
-    container.addSubview(&bg);
-
-    (bg, lbl)
-}

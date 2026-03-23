@@ -50,7 +50,3 @@ pub fn target_image_name() -> &'static str {
 }
 
 pub const SELECTED_THEME: ThemeVariant = ThemeVariant::Nord;
-// Menu Info
-pub const MENU_NAME: &str = "Alloy";
-pub const VERSION: &str = "1.0.1";
-pub const WELCOME_MESSAGE: &str = "Unleashing the dragon...";

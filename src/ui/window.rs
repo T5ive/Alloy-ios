@@ -197,20 +197,7 @@ pub fn init_overlay() {
 
     MENU_VIEW.with(|m| *m.borrow_mut() = Some(menu));
 
-    let window_ptr = Retained::into_raw(window.clone()) as usize;
-
-    super::components::toast::show_welcome(
-        crate::config::MENU_NAME,
-        crate::config::VERSION,
-        crate::config::WELCOME_MESSAGE,
-        Box::new(move || {
-            if let Some(mtm) = MainThreadMarker::new() {
-                let window =
-                    unsafe { Retained::<UIWindow>::from_raw(window_ptr as *mut _).unwrap() };
-                init_floating_button(window, mtm);
-            }
-        }),
-    );
+    init_floating_button(window, mtm);
 
     #[cfg(dev_release)]
     logger::info("Native iOS overlay attached to main window!");
