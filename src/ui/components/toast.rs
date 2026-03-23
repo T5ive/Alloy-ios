@@ -417,4 +417,3 @@ fn create_status_icon(
     ic.layer().addSublayer(&l);
     (ic, l)
 }
-

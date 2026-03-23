@@ -40,6 +40,5 @@ fn init_ui() {
 
     ui::add_tab("Main Settings", page_id);
     ui::add_section_header(page_id, "General Configurations");
-
     ui::native::init_overlay();
 }
