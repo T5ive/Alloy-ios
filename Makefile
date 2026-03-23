@@ -1,6 +1,10 @@
 # Rust library
 RUST_PROFILE ?= release
 
+# Uncomment the following for Linux builds (xcrun is not available on Linux)
+# export SDKROOT := $(THEOS)/sdks/iPhoneOS15.5.sdk/
+# TARGET ?= iphone:clang:latest:15.5
+
 # Enable with dev-release profile logging
 ifeq ($(RUST_PROFILE),dev-release)
     export RUSTFLAGS += --cfg dev_release
