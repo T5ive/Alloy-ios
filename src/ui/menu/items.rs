@@ -10,6 +10,54 @@ use crate::ui::components::widgets::{
 };
 use crate::ui::theme::Theme;
 
+fn create_toggle_button(
+    frame: CGRect,
+    selected: bool,
+    mtm: MainThreadMarker,
+) -> Retained<UIButton> {
+    let button = UIButton::initWithFrame(UIButton::alloc(mtm), frame);
+    button.setBackgroundColor(Some(&objc2_ui_kit::UIColor::clearColor()));
+    button.setSelected(selected);
+    let toggle_bg_color = if selected {
+        Theme::accent()
+    } else {
+        Theme::toggle_off()
+    };
+
+    let toggle_bg: Retained<UIView> = UIView::initWithFrame(
+        UIView::alloc(mtm),
+        CGRect::new(CGPoint::new(0.0, 0.0), frame.size),
+    );
+    toggle_bg.setBackgroundColor(Some(&toggle_bg_color));
+    toggle_bg.layer().setCornerRadius(frame.size.height / 2.0);
+    toggle_bg.setTag(2);
+    toggle_bg.setUserInteractionEnabled(false);
+
+    let knob_size = frame.size.height - 4.0;
+    let knob_x = if selected {
+        frame.size.width - knob_size - 2.0
+    } else {
+        2.0
+    };
+    let knob: Retained<UIView> = UIView::initWithFrame(
+        UIView::alloc(mtm),
+        CGRect::new(CGPoint::new(knob_x, 2.0), CGSize::new(knob_size, knob_size)),
+    );
+    let knob_color = if selected {
+        Theme::knob_on()
+    } else {
+        Theme::accent()
+    };
+    knob.setBackgroundColor(Some(&knob_color));
+    knob.layer().setCornerRadius(knob_size / 2.0);
+    knob.setTag(3);
+    knob.setUserInteractionEnabled(false);
+
+    toggle_bg.addSubview(&knob);
+    button.addSubview(&toggle_bg);
+    button
+}
+
 /// Creates a list item with a boolean toggle switch
 ///
 /// # Arguments
@@ -263,5 +311,114 @@ pub fn create_dropdown_item(
     }
     value_label.setTag(7);
     item.addSubview(&value_label);
+    item
+}
+
+/// Creates a two-row slider item with an attached toggle switch.
+pub fn create_slider_toggle_item(
+    frame: CGRect,
+    label_text: &str,
+    value: f32,
+    min: f32,
+    max: f32,
+    toggle_selected: bool,
+    mtm: MainThreadMarker,
+) -> Retained<UIButton> {
+    let item = styled_container(frame, mtm);
+    let toggle_size = CGSize::new(44.0, 24.0);
+    let toggle_x = frame.size.width - toggle_size.width - 12.0;
+    let value_width = 42.0;
+    let value_x = toggle_x - value_width - 10.0;
+    let label_width = value_x - 22.0;
+
+    item.addSubview(&create_label(
+        CGRect::new(CGPoint::new(12.0, 10.0), CGSize::new(label_width, 20.0)),
+        label_text,
+        14.0,
+        false,
+        mtm,
+    ));
+
+    let value_label = create_label(
+        CGRect::new(CGPoint::new(value_x, 10.0), CGSize::new(value_width, 20.0)),
+        &format!("{:.0}", value),
+        12.0,
+        true,
+        mtm,
+    );
+    value_label.setTextAlignment(objc2_ui_kit::NSTextAlignment::Right);
+    unsafe {
+        value_label.setTextColor(Some(&Theme::accent()));
+    }
+    value_label.setTag(5);
+    item.addSubview(&value_label);
+
+    let toggle = create_toggle_button(
+        CGRect::new(CGPoint::new(toggle_x, 8.0), toggle_size),
+        toggle_selected,
+        mtm,
+    );
+    toggle.setTag(8);
+    item.addSubview(&toggle);
+
+    let slider = create_slider(
+        CGRect::new(
+            CGPoint::new(12.0, 38.0),
+            CGSize::new(frame.size.width - 24.0, 30.0),
+        ),
+        value,
+        min,
+        max,
+        mtm,
+    );
+    slider.setTag(4);
+    item.addSubview(&slider);
+    item
+}
+
+/// Creates a single-row input item with an attached toggle switch.
+pub fn create_text_input_toggle_item(
+    frame: CGRect,
+    label_text: &str,
+    placeholder: &str,
+    toggle_selected: bool,
+    mtm: MainThreadMarker,
+) -> Retained<UIButton> {
+    let item = styled_container(frame, mtm);
+    let toggle_size = CGSize::new(44.0, 24.0);
+    let toggle_x = frame.size.width - toggle_size.width - 12.0;
+    let input_x = 136.0;
+    let input_width = toggle_x - input_x - 12.0;
+
+    item.addSubview(&create_label(
+        CGRect::new(CGPoint::new(12.0, 15.0), CGSize::new(116.0, 20.0)),
+        label_text,
+        14.0,
+        false,
+        mtm,
+    ));
+
+    let input = create_text_input(
+        CGRect::new(
+            CGPoint::new(input_x, 9.0),
+            CGSize::new(input_width.max(72.0), 32.0),
+        ),
+        placeholder,
+        mtm,
+    );
+    input.setTag(6);
+
+    let delegate = crate::ui::utils::delegate::TextFieldDelegate::shared(mtm);
+    let delegate_ref = objc2::runtime::ProtocolObject::from_ref(&*delegate);
+    input.setDelegate(Some(delegate_ref));
+    item.addSubview(&input);
+
+    let toggle = create_toggle_button(
+        CGRect::new(CGPoint::new(toggle_x, 13.0), toggle_size),
+        toggle_selected,
+        mtm,
+    );
+    toggle.setTag(8);
+    item.addSubview(&toggle);
     item
 }

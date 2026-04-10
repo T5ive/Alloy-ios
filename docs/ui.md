@@ -88,6 +88,29 @@ ui::add_slider(
 );
 ```
 
+### Slider With Toggle
+
+```rust
+ui::add_slider_with_options(
+    page_id,
+    "Slider Option",
+    "slider_option_value",
+    0.0,
+    100.0,
+    50.0,
+    ui::SliderOptions::new().with_toggle(
+        ui::ToggleOptions::new("slider_option_enabled", true).with_callback(|state: bool| {
+            logger::info(&format!("Slider enabled: {}", state));
+        }),
+    ),
+    Some(|val: f32| {
+        logger::info(&format!("Slider value: {}", val));
+    }),
+);
+```
+
+The toggle state is stored separately from the slider value. Turning the toggle off does not disable the slider.
+
 ### Text Input
 
 ```rust
@@ -102,6 +125,30 @@ ui::add_input(
     }),
 );
 ```
+
+### Input With Toggle
+
+```rust
+ui::add_input_with_options(
+    page_id,
+    "Input Option",
+    "input_option_value",
+    "100",
+    "100",
+    ui::InputOptions::new().with_toggle(
+        ui::ToggleOptions::new("input_option_enabled", false).with_callback(
+            |state: bool| {
+                logger::info(&format!("Input enabled: {}", state));
+            },
+        ),
+    ),
+    Some(|text: String| {
+        logger::info(&format!("Input value: {}", text));
+    }),
+);
+```
+
+The toggle state is stored separately from the input text. Turning the toggle off does not block text edits.
 
 ### Dropdown
 

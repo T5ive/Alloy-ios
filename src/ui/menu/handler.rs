@@ -47,6 +47,15 @@ define_class!(
                          if let Some(cb) = callback { cb(selected); }
                          return;
                     }
+                    MenuItem::Slider { toggle: Some(toggle), .. }
+                    | MenuItem::Input { toggle: Some(toggle), .. } => {
+                        let selected = !sender.isSelected();
+                        sender.setSelected(selected);
+                        Preferences::set_bool(&toggle.key, selected);
+                        update_toggle_ui(sender, selected);
+                        if let Some(cb) = toggle.callback { cb(selected); }
+                        return;
+                    }
                     MenuItem::ActionButton { callback, .. } => {
                         trigger_feedback();
                         crate::ui::utils::animations::pulse(sender, 0.96, 0.2);
